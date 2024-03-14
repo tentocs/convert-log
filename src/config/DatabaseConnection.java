@@ -7,7 +7,7 @@ import java.sql.*;
 
 public class DatabaseConnection {
 
-    public static String getProduct(String idProduct){
+    public static String getProduct(String idProduct) throws ClassNotFoundException {
 
         //vairables para conexión
         String ip = "";
@@ -44,17 +44,21 @@ public class DatabaseConnection {
             e.printStackTrace();
         }
 
+        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+
         String connectionUrl = "jdbc:sqlserver://"+ip+":1433;" +
-                "sslProtocol=TLSv1.2;"+
+               // "sslProtocol=TLSv1.2;"+
                 "databaseName="+database+";" +
                 "user="+user+";" +
-                "password="+password+";" +
-                "loginTimeout=60;"+
-                "encrypt=false;"+
-                "TrustServerCertificate=True;";
+                "password="+password+";"+
+                //"loginTimeout=60;"+
+                //"integratedSecurity=true;"+
+                "encrypt=false;";
+                //"TrustServerCertificate=true;";
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
              Statement statement = connection.createStatement()) {
+
 
             //busqueda del producto
             String selectSql ="SELECT ITM_ID, RCPT_DESCR FROM [dbo].[PLU]"+
@@ -64,6 +68,7 @@ public class DatabaseConnection {
             while (resultSet.next()) {
                 productName= resultSet.getString(2);
             }
+            statement.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

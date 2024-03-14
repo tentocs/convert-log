@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="log-process:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/log_process_jar</output-path>
+    <root id="archive" name="log-process.jar">
+      <element id="module-output" name="log-process" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/sqljdbc_12.6.0.0_enu/sqljdbc_12.6/enu/jars/mssql-jdbc-12.6.0.jre8.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/sqljdbc_12.6.0.0_enu/sqljdbc_12.6/enu/jars/mssql-jdbc-12.6.0.jre11.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
