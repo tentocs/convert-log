@@ -218,6 +218,7 @@ public class Main {
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE                   ").append("T0").append(storeNumber).append("    ").append("R00").append(posNumber).append("\n");
 
 
+                        //Reemplazo del nombre del cajero en la cabecera
                         int startIndex = content.indexOf("cashierText");
                         int endIndex = startIndex + "cashierText".length();
                         content.replace(startIndex, endIndex, firtsCashierName);
