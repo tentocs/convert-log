@@ -74,6 +74,7 @@ public class Main {
                         String numTender = "";
                         String tenderAmount = "";
                         String productName ="";
+                        String firtsCashierName ="";
                         List<String> pluCodes = new ArrayList<>();
                         List<String> duplicates = new ArrayList<>();
                         int totalPrice = 0;
@@ -108,13 +109,15 @@ public class Main {
                                     cashierName = getAttribute(attributes, "CashierName");
                                 }
 
+                                 firtsCashierName = convertCashier(cashierName);
 
-                                if (i == 1) {
+
+                                if (i==1) {
 
                                     content = new StringBuilder(getStaticLine(nodos) + " CLOSED          TRUE" + "\n" +
                                             getStaticLine(nodos) + " DOCUMENT_TYPE   TICKET" + "\n" +
                                             getStaticLine(nodos) + " TRX_NUMBER      " + ticketNumber + "\n" +
-                                            getStaticLine(nodos) + " EMPLOYEE        CARLOS,CONTENTO, ," + "\n" +
+                                            getStaticLine(nodos) + " EMPLOYEE        cashierText"+" ," + "\n" +
                                             getStaticLine(nodos) + " DOB             " + date + "\n" +
                                             getStaticLine(nodos) + " DATE            " + date + "\n" +
                                             getStaticLine(nodos) + " TIME            " + hour + "\n" +
@@ -184,13 +187,16 @@ public class Main {
                                         }
 
                                     }
-                                    content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
+                                    //content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
 
                                 }
 
 
                             }
                         }
+
+
+                        content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
 
                         String textDate =calculateTextDate(date);
 
@@ -211,6 +217,11 @@ public class Main {
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE        ").append("C").append(cashierId).append("    ").append("#").append(ticketNumber).append("    ").append(hour).append("    ").append(textDate).append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE                   ").append("T0").append(storeNumber).append("    ").append("R00").append(posNumber).append("\n");
 
+
+                        int startIndex = content.indexOf("cashierText");
+                        int endIndex = startIndex + "cashierText".length();
+                        content.replace(startIndex, endIndex, firtsCashierName);
+
                         writeFile(toPath+separator, content.toString(), ticketNumber);
 
                     }
@@ -219,6 +230,19 @@ public class Main {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    private static String convertCashier(String cashierName){
+        String[] partes = cashierName.split("\\s+");
+
+        StringBuilder cashierNewName= new StringBuilder();
+
+        for (String parte : partes) {
+            cashierNewName.append(parte).append(",");
+        }
+
+        return cashierNewName.toString();
+
     }
 
     private static String calculateTextNumTender(String numTender){
