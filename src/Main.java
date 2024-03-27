@@ -82,6 +82,7 @@ public class Main {
                         int totalDiscount = 0;
                         int countDiscount = 0;
                         int finalPrice = 0;
+                        String  canjePoints = "";
                         for (int i = 0; i < nodos.getLength(); i++) {
                             Node nodo = nodos.item(i);
                             if (nodo.getNodeType() == Node.ELEMENT_NODE) {
@@ -96,7 +97,12 @@ public class Main {
                                     cashierId = getAttribute(atributos, "Tail_NumCajero");
                                     storeNumber = getAttribute(atributos, "StoreNumber");
                                     posNumber = getAttribute(atributos, "Tail_NumPOS");
+                                }
 
+                                //Obtengo el valor para validar si es canje de puntos
+                                if (nodo.getNodeName().equals("CMR_RDMPT")) {
+                                    NamedNodeMap rutAttributes = nodo.getAttributes();
+                                    canjePoints = getAttribute(rutAttributes, "Canje_Points");
                                 }
 
                                 if (nodo.getNodeName().equals("InfoDocData")) {
@@ -109,7 +115,7 @@ public class Main {
                                     cashierName = getAttribute(attributes, "CashierName");
                                 }
 
-                                 firtsCashierName = convertCashier(cashierName);
+                                firtsCashierName = convertCashier(cashierName);
 
 
                                 if (i==1) {
@@ -124,71 +130,130 @@ public class Main {
                                             getStaticLine(nodos) + " HEADER          DEFAULT HEADER" + "\n" +
                                             getStaticLine(nodos) + " FOOTER          DEFAULT FOOTER" + "\n");
 
-                                    pluCodes = resolveString(nodos);
+                                    pluCodes = resolveString(nodos,"InfoSPF");
                                     duplicates = findDuplicateInStream(pluCodes);
                                 }
 
-                                // Obtener atributos (si existen)
-                                if (nodo.getNodeName().equals("InfoSPF")) {
-                                    NamedNodeMap atributos = nodo.getAttributes();
-                                    for (int j = 0; j < atributos.getLength(); j++) {
-                                        Node atributo = atributos.item(j);
+                                //Valido si es canje
+                                if(!canjePoints.isEmpty()){
+                                    if (nodo.getNodeName().equals("PLU")) {
+                                        NamedNodeMap atributos = nodo.getAttributes();
+                                        for (int j = 0; j < atributos.getLength(); j++) {
+                                            Node atributo = atributos.item(j);
 
-                                        if (atributo.getNodeName().equals("CodigoPLU")) {
-                                            codigoPLU = atributo.getNodeValue();
-                                            productName = DatabaseConnection.getProduct(codigoPLU);
-                                        }
-                                        if (atributo.getNodeName().equals("Precio")) {
-                                            precio = atributo.getNodeValue();
-                                        }
-                                        if (atributo.getNodeName().equals("MontoDesc")) {
-                                            descuento = atributo.getNodeValue();
-                                        }
+                                            if (atributo.getNodeName().equals("CodigoPLU")) {
+                                                codigoPLU = atributo.getNodeValue();
+                                                productName = DatabaseConnection.getProduct(codigoPLU);
 
-                                    }
-
-                                    totalDiscount = totalDiscount + Integer.parseInt(descuento);
-                                    finalPrice = finalPrice + Integer.parseInt(precio);
-
-
-                                    if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
-                                        if (descuento.isEmpty() || descuento.equals("0")) {
-                                            descuento = "0";
-                                        }else{
-                                            countDiscount++;
-                                        }
-
-
-                                        if (!codigoPLU.equals(lastCodigoPLU)) {
-
-                                            if (isDuplicate(codigoPLU, duplicates)) {
-                                                countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
-                                                totalPrice = Integer.parseInt(precio);
-                                                content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
-                                            } else {
-                                                content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(precio).append(",").append("1,1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                            }
+                                            if (atributo.getNodeName().equals("Precio")) {
+                                                precio = atributo.getNodeValue();
+                                            }
+                                            //no aplica
+                                            if (atributo.getNodeName().equals("MontoDesc")) {
+                                                descuento = atributo.getNodeValue();
                                             }
                                         }
-                                        lastCodigoPLU = codigoPLU;
+
+
+                                        finalPrice = finalPrice + Integer.parseInt(precio);
+
+
+                                        if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
+                                            if (descuento.isEmpty() || descuento.equals("0")) {
+                                                descuento = "0";
+                                            }else{
+                                                countDiscount++;
+                                            }
+
+
+                                            if (!codigoPLU.equals(lastCodigoPLU)) {
+
+                                                if (isDuplicate(codigoPLU, duplicates)) {
+                                                    countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                    totalPrice = Integer.parseInt(precio);
+                                                    content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                } else {
+                                                    content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(precio).append(",").append("1,1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                }
+                                            }
+                                            lastCodigoPLU = codigoPLU;
+
+                                        }
+                                    }
+
+                                    numTender = calculateTextNumTender("41");
+                                    tenderAmount = canjePoints;
+
+                                    pluCodes = resolveString(nodos,"PLU");
+
+                                }else {
+
+                                    // Obtener atributos (si existen)
+                                    if (nodo.getNodeName().equals("InfoSPF")) {
+                                        NamedNodeMap atributos = nodo.getAttributes();
+                                        for (int j = 0; j < atributos.getLength(); j++) {
+                                            Node atributo = atributos.item(j);
+
+                                            if (atributo.getNodeName().equals("CodigoPLU")) {
+                                                codigoPLU = atributo.getNodeValue();
+                                                productName = DatabaseConnection.getProduct(codigoPLU);
+                                            }
+                                            if (atributo.getNodeName().equals("Precio")) {
+                                                precio = atributo.getNodeValue();
+                                            }
+                                            if (atributo.getNodeName().equals("MontoDesc")) {
+                                                descuento = atributo.getNodeValue();
+                                            }
+
+                                        }
+
+                                        totalDiscount = totalDiscount + Integer.parseInt(descuento);
+                                        finalPrice = finalPrice + Integer.parseInt(precio);
+
+
+                                        if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
+                                            if (descuento.isEmpty() || descuento.equals("0")) {
+                                                descuento = "0";
+                                            }else{
+                                                countDiscount++;
+                                            }
+
+
+                                            if (!codigoPLU.equals(lastCodigoPLU)) {
+
+                                                if (isDuplicate(codigoPLU, duplicates)) {
+                                                    countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                    totalPrice = Integer.parseInt(precio);
+                                                    content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                } else {
+                                                    content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(precio).append(",").append("1,1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                }
+                                            }
+                                            lastCodigoPLU = codigoPLU;
+
+                                        }
+                                    }
+
+
+
+                                    if (nodo.getNodeName().equals("Media")) {
+                                        NamedNodeMap mediaAttributes = nodo.getAttributes();
+                                        for (int j = 0; j < mediaAttributes.getLength(); j++) {
+                                            Node mediaAttribute = mediaAttributes.item(j);
+
+                                            if (mediaAttribute.getNodeName().equals("NumTender")) {
+                                                numTender = calculateTextNumTender(mediaAttribute.getNodeValue());
+                                            }
+                                            if (mediaAttribute.getNodeName().equals("MontoTender")) {
+                                                tenderAmount = mediaAttribute.getNodeValue();
+                                            }
+
+
+                                        }
+                                        //content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
 
                                     }
-                                }
-
-                                if (nodo.getNodeName().equals("Media")) {
-                                    NamedNodeMap mediaAttributes = nodo.getAttributes();
-                                    for (int j = 0; j < mediaAttributes.getLength(); j++) {
-                                        Node mediaAttribute = mediaAttributes.item(j);
-
-                                        if (mediaAttribute.getNodeName().equals("NumTender")) {
-                                            numTender = calculateTextNumTender(mediaAttribute.getNodeValue());
-                                        }
-                                        if (mediaAttribute.getNodeName().equals("MontoTender")) {
-                                            tenderAmount = mediaAttribute.getNodeValue();
-                                        }
-
-                                    }
-                                    //content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
-
                                 }
 
 
@@ -202,21 +267,31 @@ public class Main {
 
 
 
-                        content.append(getStaticLine(nodos)).append(" PROMO_AMOUNT    ").append(totalDiscount).append("\n");
+                        if(canjePoints.isEmpty()){
+                            content.append(getStaticLine(nodos)).append(" PROMO_AMOUNT    ").append(totalDiscount).append("\n");
+                        }
                         content.append(getStaticLine(nodos)).append(" SUBTOTAL        ").append(finalPrice - totalDiscount).append("\n");
                         content.append(getStaticLine(nodos)).append(" RUT_CLIENTE     ").append(rut).append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE          TOTAL NUM.ITEMS VENDIDOS =    ").append(pluCodes.size()).append("\n");
-                        content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
-                        content.append(getStaticLine(nodos)).append(" TEXT_LINE       USTED AHORRO HOY!").append("\n");
-                        content.append(getStaticLine(nodos)).append(" TEXT_LINE       -------------------").append("\n");
-                        content.append(getStaticLine(nodos)).append(" TEXT_LINE        TOTAL DESCUENTOS     ").append(countDiscount).append("            ").append(totalDiscount).append("\n");
+                        if(canjePoints.isEmpty()) {
+                            content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
+                            content.append(getStaticLine(nodos)).append(" TEXT_LINE       USTED AHORRO HOY!").append("\n");
+                            content.append(getStaticLine(nodos)).append(" TEXT_LINE       -------------------").append("\n");
+                            content.append(getStaticLine(nodos)).append(" TEXT_LINE        TOTAL DESCUENTOS     ").append(countDiscount).append("            ").append(totalDiscount).append("\n");
+                        }
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE        NOMBRE DEL CAJERO:").append(cashierName).append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE        ").append("C").append(cashierId).append("    ").append("#").append(ticketNumber).append("    ").append(hour).append("    ").append(textDate).append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE                   ").append("T0").append(storeNumber).append("    ").append("R00").append(posNumber).append("\n");
 
+                        //Reemplazo de la cabecera para caje de puntos
+                        if(!canjePoints.isEmpty()){
+                            int startIndexCanje = content.indexOf("TICKET");
+                            int endIndexCanje = startIndexCanje + "TICKET".length();
+                            content.replace(startIndexCanje, endIndexCanje, "TICKETPUNTO");
+                        }
 
                         //Reemplazo del nombre del cajero en la cabecera
                         int startIndex = content.indexOf("cashierText");
@@ -325,6 +400,9 @@ public class Main {
             case "40":
                 descriptionTender = "SODEXO";
                 break;
+            case "41":
+                descriptionTender = "CMRPuntos";
+                break;
             default:
                 throw new IllegalArgumentException("Descripción Invalida: " + descriptionTender);
         }
@@ -424,13 +502,13 @@ public class Main {
 
     }
 
-    private static List<String> resolveString(NodeList nodos) {
+    private static List<String> resolveString(NodeList nodos, String cadena) {
 
         List<String> pluCodes = new ArrayList<>();
         for (int i = 0; i < nodos.getLength(); i++) {
             Node nodo = nodos.item(i);
             if (nodo.getNodeType() == Node.ELEMENT_NODE) {
-                if (nodo.getNodeName().equals("InfoSPF")) {
+                if (nodo.getNodeName().equals(cadena)) {
                     NamedNodeMap atributos = nodo.getAttributes();
                     pluCodes.add(saveProductCodes(atributos));
                 }
