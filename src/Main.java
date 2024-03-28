@@ -20,7 +20,6 @@ public class Main {
     public static void main(String[] args)
     {
 
-
         String xPathExpression = "//Ticket/*"; // Expresión XPath para seleccionar todos los nodos dentro de <Ticket>
         Document documento = null;
         NodeList nodos = null;
