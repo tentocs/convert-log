@@ -31,12 +31,13 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {
 
-            String rutaEjecucion = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            //String rutaEjecucion = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
 
-            System.out.print("Transformando archivos XML ...");
-            String fromPath = rutaEjecucion;
+            System.out.print("Ingresa la ruta de lectura de xml: ");
+            String fromPath = reader.readLine();
 
-            String toPath = rutaEjecucion;
+            System.out.print("Ingresa la ruta de salida: ");
+            String toPath = reader.readLine();
 
             File directory = new File(fromPath);
             File[] archivos = directory.listFiles();
