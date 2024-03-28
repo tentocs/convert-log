@@ -30,7 +30,7 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {
 
-            //String rutaEjecucion = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            String rutaEjecucion = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
 
             System.out.print("Ingresa la ruta de lectura de xml: ");
             String fromPath = reader.readLine();
