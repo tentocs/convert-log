@@ -31,11 +31,12 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {
 
-            System.out.print("Ingresa la ruta de lectura de xml: ");
-            String fromPath = reader.readLine();
+            String rutaEjecucion = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
 
-            System.out.print("Ingresa la ruta de salida: ");
-            String toPath = reader.readLine();
+            System.out.print("Transformando archivos XML ...");
+            String fromPath = rutaEjecucion;
+
+            String toPath = rutaEjecucion;
 
             File directory = new File(fromPath);
             File[] archivos = directory.listFiles();
@@ -75,6 +76,7 @@ public class Main {
                         String tenderAmount = "";
                         String productName ="";
                         String firtsCashierName ="";
+                        String change ="";
                         List<String> pluCodes = new ArrayList<>();
                         List<String> duplicates = new ArrayList<>();
                         int totalPrice = 0;
@@ -82,6 +84,8 @@ public class Main {
                         int totalDiscount = 0;
                         int countDiscount = 0;
                         int finalPrice = 0;
+                        int realChangeNumber = 0;
+                        String changeNumber ="";
                         String  canjePoints = "";
                         for (int i = 0; i < nodos.getLength(); i++) {
                             Node nodo = nodos.item(i);
@@ -238,18 +242,35 @@ public class Main {
 
 
                                     if (nodo.getNodeName().equals("Media")) {
-                                        NamedNodeMap mediaAttributes = nodo.getAttributes();
-                                        for (int j = 0; j < mediaAttributes.getLength(); j++) {
-                                            Node mediaAttribute = mediaAttributes.item(j);
+                                        if(change.isEmpty()){
+                                            NamedNodeMap mediaAttributes = nodo.getAttributes();
+                                            for (int j = 0; j < mediaAttributes.getLength(); j++) {
+                                                Node mediaAttribute = mediaAttributes.item(j);
 
-                                            if (mediaAttribute.getNodeName().equals("NumTender")) {
-                                                numTender = calculateTextNumTender(mediaAttribute.getNodeValue());
+                                                if (mediaAttribute.getNodeName().equals("NumTender")) {
+                                                    numTender = calculateTextNumTender(mediaAttribute.getNodeValue());
+                                                }
+                                                if (mediaAttribute.getNodeName().equals("MontoTender")) {
+                                                    tenderAmount = mediaAttribute.getNodeValue();
+                                                }
+                                                if (mediaAttribute.getNodeName().equals("Change")) {
+                                                    change = mediaAttribute.getNodeValue();
+                                                }
                                             }
-                                            if (mediaAttribute.getNodeName().equals("MontoTender")) {
-                                                tenderAmount = mediaAttribute.getNodeValue();
+                                        }else{
+                                            NamedNodeMap mediaAttributes = nodo.getAttributes();
+                                            for (int j = 0; j < mediaAttributes.getLength(); j++) {
+                                                Node mediaAttribute = mediaAttributes.item(j);
+
+                                                if (mediaAttribute.getNodeName().equals("MontoTender")) {
+                                                    changeNumber = mediaAttribute.getNodeValue();
+                                                    realChangeNumber = Math.abs(Integer.parseInt(changeNumber));
+                                                }
+                                                if (mediaAttribute.getNodeName().equals("Change")) {
+                                                    change = mediaAttribute.getNodeValue();
+                                                }
+
                                             }
-
-
                                         }
                                         //content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
 
@@ -271,6 +292,9 @@ public class Main {
                             content.append(getStaticLine(nodos)).append(" PROMO_AMOUNT    ").append(totalDiscount).append("\n");
                         }
                         content.append(getStaticLine(nodos)).append(" SUBTOTAL        ").append(finalPrice - totalDiscount).append("\n");
+                        if(change.equals("1")){
+                            content.append(getStaticLine(nodos)).append(" CHANGE          ").append(realChangeNumber).append("\n");
+                        }
                         content.append(getStaticLine(nodos)).append(" RUT_CLIENTE     ").append(rut).append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE          TOTAL NUM.ITEMS VENDIDOS =    ").append(pluCodes.size()).append("\n");
