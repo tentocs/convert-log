@@ -7,7 +7,7 @@ import java.sql.*;
 
 public class DatabaseConnection {
 
-    public static String getProduct(String idProduct) throws ClassNotFoundException {
+    public static String getProduct(String idProduct, String configPath) throws ClassNotFoundException {
 
         //vairables para conexión
         String ip = "";
@@ -19,7 +19,7 @@ public class DatabaseConnection {
         String productName="";
         separator = System.getProperty("file.separator");
 
-        String filePath = "C:"+separator+"config.txt";
+        String filePath = configPath+separator+"config.txt";
         try (BufferedReader readerLocal = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = readerLocal.readLine()) != null) {

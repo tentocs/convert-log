@@ -30,15 +30,14 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {
 
-            //String rutaEjecucion = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            String rutaJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            String rutaDirectorio = rutaJar.substring(0, rutaJar.lastIndexOf(File.separator) + 1);
 
-            System.out.print("Ingresa la ruta de lectura de xml: ");
-            String fromPath = reader.readLine();
+            System.out.print("Transformando archivos XML...\n");
+            System.out.print(".............................\n");
 
-            System.out.print("Ingresa la ruta de salida: ");
-            String toPath = reader.readLine();
 
-            File directory = new File(fromPath);
+            File directory = new File(rutaDirectorio);
             File[] archivos = directory.listFiles();
 
             if (archivos != null) {
@@ -49,7 +48,7 @@ public class Main {
                         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
                         DocumentBuilder builder = factory.newDocumentBuilder();
                         // documento = builder.parse(new File("C:"+separator+"1918.xml"));
-                        documento = builder.parse(new File(fromPath + separator + archivo.getName())); // Ajusto la ruta al archivo XML según ubicación
+                        documento = builder.parse(new File(rutaDirectorio + separator + archivo.getName())); // Ajusto la ruta al archivo XML según ubicación
 
 
                         // Preparación de XPath
@@ -147,7 +146,7 @@ public class Main {
 
                                             if (atributo.getNodeName().equals("CodigoPLU")) {
                                                 codigoPLU = atributo.getNodeValue();
-                                                productName = DatabaseConnection.getProduct(codigoPLU);
+                                                productName = DatabaseConnection.getProduct(codigoPLU,rutaDirectorio);
 
                                             }
                                             if (atributo.getNodeName().equals("Precio")) {
@@ -201,7 +200,7 @@ public class Main {
 
                                             if (atributo.getNodeName().equals("CodigoPLU")) {
                                                 codigoPLU = atributo.getNodeValue();
-                                                productName = DatabaseConnection.getProduct(codigoPLU);
+                                                productName = DatabaseConnection.getProduct(codigoPLU,rutaDirectorio);
                                             }
                                             if (atributo.getNodeName().equals("Precio")) {
                                                 precio = atributo.getNodeValue();
@@ -322,7 +321,7 @@ public class Main {
                         int endIndex = startIndex + "cashierText".length();
                         content.replace(startIndex, endIndex, firtsCashierName);
 
-                        writeFile(toPath+separator, content.toString(), ticketNumber);
+                        writeFile(rutaDirectorio+separator, content.toString(), ticketNumber);
 
                     }
                 }
