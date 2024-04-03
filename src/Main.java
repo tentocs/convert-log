@@ -36,6 +36,8 @@ public class Main {
             System.out.print("Transformando archivos XML...\n");
             System.out.print(".............................\n");
 
+            System.out.print(rutaDirectorio);
+
 
             File directory = new File(rutaDirectorio);
             File[] archivos = directory.listFiles();
@@ -64,6 +66,8 @@ public class Main {
                         String hour = "";
                         String codigoPLU = "";
                         String precio = "";
+                        String quantity ="";
+                        String totalPay ="";
                         String descuento = "";
                         String lastCodigoPLU = "";
                         String rut = "";
@@ -76,6 +80,7 @@ public class Main {
                         String productName ="";
                         String firtsCashierName ="";
                         String change ="";
+                        String totalQuantity = "";
                         List<String> pluCodes = new ArrayList<>();
                         List<String> duplicates = new ArrayList<>();
                         int totalPrice = 0;
@@ -116,6 +121,12 @@ public class Main {
                                 if (nodo.getNodeName().equals("InfoEmployeeID")) {
                                     NamedNodeMap attributes = nodo.getAttributes();
                                     cashierName = getAttribute(attributes, "CashierName");
+                                }
+
+                                if (nodo.getNodeName().equals("Total")) {
+                                    NamedNodeMap attributes = nodo.getAttributes();
+                                    totalPay = getAttribute(attributes, "MontoTicket");
+                                    totalQuantity = getAttribute(attributes, "NumItems");
                                 }
 
                                 firtsCashierName = convertCashier(cashierName);
@@ -205,11 +216,15 @@ public class Main {
                                             if (atributo.getNodeName().equals("Precio")) {
                                                 precio = atributo.getNodeValue();
                                             }
+                                            if (atributo.getNodeName().equals("Cantidad")) {
+                                                quantity = atributo.getNodeValue();
+                                            }
                                             if (atributo.getNodeName().equals("MontoDesc")) {
                                                 descuento = atributo.getNodeValue();
                                             }
 
                                         }
+
 
                                         totalDiscount = totalDiscount + Integer.parseInt(descuento);
                                         finalPrice = finalPrice + Integer.parseInt(precio);
@@ -230,7 +245,7 @@ public class Main {
                                                     totalPrice = Integer.parseInt(precio);
                                                     content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
                                                 } else {
-                                                    content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(precio).append(",").append("1,1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                    content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(Integer.parseInt(precio) * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
                                                 }
                                             }
                                             lastCodigoPLU = codigoPLU;
@@ -290,13 +305,14 @@ public class Main {
                         if(canjePoints.isEmpty()){
                             content.append(getStaticLine(nodos)).append(" PROMO_AMOUNT    ").append(totalDiscount).append("\n");
                         }
-                        content.append(getStaticLine(nodos)).append(" SUBTOTAL        ").append(finalPrice - totalDiscount).append("\n");
+                        content.append(getStaticLine(nodos)).append(" SUBTOTAL        ").append(totalPay).append("\n");
                         if(change.equals("1")){
                             content.append(getStaticLine(nodos)).append(" CHANGE          ").append(realChangeNumber).append("\n");
                         }
                         content.append(getStaticLine(nodos)).append(" RUT_CLIENTE     ").append(rut).append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
-                        content.append(getStaticLine(nodos)).append(" TEXT_LINE          TOTAL NUM.ITEMS VENDIDOS =    ").append(pluCodes.size()).append("\n");
+
+                        content.append(getStaticLine(nodos)).append(" TEXT_LINE          TOTAL NUM.ITEMS VENDIDOS =    ").append(totalQuantity).append("\n");
                         if(canjePoints.isEmpty()) {
                             content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                             content.append(getStaticLine(nodos)).append(" TEXT_LINE       USTED AHORRO HOY!").append("\n");
