@@ -61,6 +61,7 @@ public class Main {
 
 
                         StringBuilder content = new StringBuilder();
+                        StringBuilder contentMedia = new StringBuilder();
                         String ticketNumber = "";
                         String date = "";
                         String hour = "";
@@ -81,6 +82,7 @@ public class Main {
                         String firtsCashierName ="";
                         String change ="";
                         String totalQuantity = "";
+                        String changeOption = "";
                         List<String> pluCodes = new ArrayList<>();
                         List<String> duplicates = new ArrayList<>();
                         int totalPrice = 0;
@@ -121,6 +123,17 @@ public class Main {
                                 if (nodo.getNodeName().equals("InfoEmployeeID")) {
                                     NamedNodeMap attributes = nodo.getAttributes();
                                     cashierName = getAttribute(attributes, "CashierName");
+                                }
+
+                                if (nodo.getNodeName().equals("Media")) {
+                                    NamedNodeMap attributes = nodo.getAttributes();
+                                    numTender = calculateTextNumTender(getAttribute(attributes, "NumTender"));
+                                    tenderAmount = getAttribute(attributes, "MontoTender");
+                                    changeOption = getAttribute(attributes, "Change");
+                                    //Validamos que siempre ingrese el valor del canje en 0 para que no tome el valor negativo
+                                    if(Integer.parseInt(changeOption) == 0){
+                                        contentMedia.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
+                                    }
                                 }
 
                                 if (nodo.getNodeName().equals("Total")) {
@@ -253,63 +266,47 @@ public class Main {
                                         }
                                     }
 
-
-
+                                    //Esto es solo para los valores de CANJE
                                     if (nodo.getNodeName().equals("Media")) {
-                                        if(change.isEmpty()){
-                                            NamedNodeMap mediaAttributes = nodo.getAttributes();
-                                            for (int j = 0; j < mediaAttributes.getLength(); j++) {
-                                                Node mediaAttribute = mediaAttributes.item(j);
+                                        NamedNodeMap mediaAttributes = nodo.getAttributes();
+                                        for (int j = 0; j < mediaAttributes.getLength(); j++) {
+                                            Node mediaAttribute = mediaAttributes.item(j);
 
-                                                if (mediaAttribute.getNodeName().equals("NumTender")) {
-                                                    numTender = calculateTextNumTender(mediaAttribute.getNodeValue());
-                                                }
-                                                if (mediaAttribute.getNodeName().equals("MontoTender")) {
-                                                    tenderAmount = mediaAttribute.getNodeValue();
-                                                }
-                                                if (mediaAttribute.getNodeName().equals("Change")) {
-                                                    change = mediaAttribute.getNodeValue();
-                                                }
+                                            if (mediaAttribute.getNodeName().equals("MontoTender")) {
+                                                changeNumber = mediaAttribute.getNodeValue();
+                                                realChangeNumber = Math.abs(Integer.parseInt(changeNumber));
                                             }
-                                        }else{
-                                            NamedNodeMap mediaAttributes = nodo.getAttributes();
-                                            for (int j = 0; j < mediaAttributes.getLength(); j++) {
-                                                Node mediaAttribute = mediaAttributes.item(j);
-
-                                                if (mediaAttribute.getNodeName().equals("MontoTender")) {
-                                                    changeNumber = mediaAttribute.getNodeValue();
-                                                    realChangeNumber = Math.abs(Integer.parseInt(changeNumber));
-                                                }
-                                                if (mediaAttribute.getNodeName().equals("Change")) {
-                                                    change = mediaAttribute.getNodeValue();
-                                                }
-
+                                            if (mediaAttribute.getNodeName().equals("Change")) {
+                                                change = mediaAttribute.getNodeValue();
                                             }
                                         }
-                                        //content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
-
                                     }
                                 }
-
 
                             }
                         }
 
 
-                        content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
+                        //Validamos los CMR PUNTOS
+                        if(!canjePoints.isEmpty()){
+                            content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
+                        }else{
+                            content.append(contentMedia);
+                        }
+
 
                         String textDate =calculateTextDate(date);
 
-
-
-                        if(canjePoints.isEmpty()){
+                        if(totalDiscount > 0){
                             content.append(getStaticLine(nodos)).append(" PROMO_AMOUNT    ").append(totalDiscount).append("\n");
                         }
                         content.append(getStaticLine(nodos)).append(" SUBTOTAL        ").append(totalPay).append("\n");
                         if(change.equals("1")){
                             content.append(getStaticLine(nodos)).append(" CHANGE          ").append(realChangeNumber).append("\n");
                         }
-                        content.append(getStaticLine(nodos)).append(" RUT_CLIENTE     ").append(rut).append("\n");
+                        if(!rut.isEmpty()) {
+                            content.append(getStaticLine(nodos)).append(" RUT_CLIENTE     ").append(rut).append("\n");
+                        }
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
 
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE          TOTAL NUM.ITEMS VENDIDOS =    ").append(totalQuantity).append("\n");
@@ -347,6 +344,34 @@ public class Main {
         }
     }
 
+    private static String concatMediasCanje(NodeList nodos){
+
+        String numTender ="";
+        String tenderAmount ="";
+        StringBuilder content = new StringBuilder();
+        for (int i = 0; i < nodos.getLength(); i++) {
+            Node nodo = nodos.item(i);
+            if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+
+                if (nodo.getNodeName().equals("Media")) {
+                    NamedNodeMap mediaAttributes = nodo.getAttributes();
+                    for (int j = 0; j < mediaAttributes.getLength(); j++) {
+                        Node mediaAttribute = mediaAttributes.item(j);
+
+                        if (mediaAttribute.getNodeName().equals("NumTender")) {
+                            numTender = calculateTextNumTender(mediaAttribute.getNodeValue());
+                        }
+                        if (mediaAttribute.getNodeName().equals("MontoTender")) {
+                            tenderAmount = mediaAttribute.getNodeValue();
+                        }
+                    }
+                }
+            }
+            content.append(getStaticLine(nodos)).append(" PAYMENT         ").append(numTender).append(",").append(tenderAmount).append(",,,").append("\n");
+        }
+        return content.toString();
+    }
+
     private static String convertCashier(String cashierName){
         String[] partes = cashierName.split("\\s+");
 
@@ -357,7 +382,6 @@ public class Main {
         }
 
         return cashierNewName.toString();
-
     }
 
     private static String calculateTextNumTender(String numTender){
