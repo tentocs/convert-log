@@ -1,4 +1,5 @@
 import java.io.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +95,7 @@ public class Main {
                         int realChangeNumber = 0;
                         int pluQuantity = 0 ;
                         int pluPrice = 0;
-                        int pesableConverted = 0;
+                        double quantityConverted = 0.0;
                         String changeNumber ="";
                         String  canjePoints = "";
                         for (int i = 0; i < nodos.getLength(); i++) {
@@ -275,34 +276,23 @@ public class Main {
 
                                         countDiscount = 0;
 
-                                        NamedNodeMap atributos = nodo.getAttributes();
-                                        for (int j = 0; j < atributos.getLength(); j++) {
-                                            pesable = "";
-                                            Node atributo = atributos.item(j);
+                                        NamedNodeMap rutAttributes = nodo.getAttributes();
+                                        codigoPLU = getAttribute(rutAttributes, "CodigoPLU");
+                                        productName = DatabaseConnection.getProduct(codigoPLU, rutaDirectorio);
+                                        quantity = getAttribute(rutAttributes, "Cantidad");
+                                        precio = getAttribute(rutAttributes, "Precio");
+                                        pesable = getAttribute(rutAttributes, "Pesable");
 
-                                            if(atributo.getNodeName().equals("CodigoPLU") || atributo.getNodeName().equals("Cantidad") || atributo.getNodeName().equals("Precio")) {
+                                        if (pesable.equals("1")){
+                                            double precioConverted = 0;
+                                            int intPart = 0 ;
+                                            quantityConverted = calculatePounds(Integer.parseInt(quantity));
+                                            precioConverted = calculateRealPrice(quantityConverted,Integer.parseInt(precio));
+                                            intPart = (int) precioConverted;
+                                            content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(quantityConverted).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                        }else {
 
-                                                if (atributo.getNodeName().equals("CodigoPLU")) {
-                                                    codigoPLU = atributo.getNodeValue();
-                                                    productName = DatabaseConnection.getProduct(codigoPLU, rutaDirectorio);
-                                                }
-
-                                                if (atributo.getNodeName().equals("Cantidad")) {
-                                                    quantity = atributo.getNodeValue();
-                                                }
-
-                                                if (atributo.getNodeName().equals("Precio")) {
-                                                    precio = atributo.getNodeValue();
-
-                                                }
-                                            }
-                                           /* if (atributo.getNodeName().equals("Pesable")) {
-                                                pesable = atributo.getNodeValue();
-                                                pesableConverted = Integer.parseInt(pesable);
-                                            }*/
-
-
-                                            if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
+                                            if (!codigoPLU.isEmpty() && !precio.isEmpty() && !quantity.isEmpty()) {
                                                 if (descuento.isEmpty() || descuento.equals("0")) {
                                                     descuento = "0";
                                                 } else {
@@ -316,10 +306,13 @@ public class Main {
                                                         countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
                                                         totalPrice = Integer.parseInt(precio);
                                                         content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
-                                                        precio ="";
+                                                        precio = "";
+                                                        quantity = "";
                                                     } else {
-                                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(precio).append(",").append("1,1,0,0,0,0,0,0,0,").append(descuento).append("\n");
-                                                        precio ="";
+                                                        totalPrice = Integer.parseInt(precio);
+                                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                        precio = "";
+                                                        quantity = "";
                                                     }
                                                 }
                                                 lastCodigoPLU = codigoPLU;
@@ -327,6 +320,8 @@ public class Main {
                                             }
 
                                         }
+
+                                        //aqui va el cambio
                                     }
                                 }
 
@@ -422,7 +417,22 @@ public class Main {
         return infoSB;
     }
 
+    private static  double calculateRealPrice(double quantityConverted, int precio){
 
+
+        double numero = quantityConverted * precio;
+        BigDecimal bigDecimal = new BigDecimal(numero);
+        bigDecimal = bigDecimal.subtract(new BigDecimal(bigDecimal.intValue())); // Resta la parte entera
+        bigDecimal = bigDecimal.multiply(new BigDecimal(10)); // Multiplica por 10 para obtener el primer decimal
+        int primerDecimal = bigDecimal.intValue(); // Convierte a entero
+
+        if(primerDecimal > 5){
+            return Math.ceil(quantityConverted * precio);
+        }else {
+            return Math.round(quantityConverted * precio);
+        }
+
+    }
 
     private static double calculatePounds(int cantidad){
         double pounds = 0;
