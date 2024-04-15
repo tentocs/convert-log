@@ -85,8 +85,15 @@ public class Main {
                         String totalQuantity = "";
                         String changeOption = "";
                         String pesable ="";
+                        String pesableInfo ="";
+                        String quantityInfo ="";
+                        String codigoPLUInfo = "";
+                        String nullabled = "";
                         List<String> pluCodes = new ArrayList<>();
+                        List<String> nullabledCodesPlu = new ArrayList<>();
                         List<String> duplicates = new ArrayList<>();
+                        List<String> pesables = new ArrayList<>();
+                        List<String> pluSaved = new ArrayList<>();
                         int totalPrice = 0;
                         int countDuplicates = 0;
                         int totalDiscount = 0;
@@ -95,6 +102,7 @@ public class Main {
                         int realChangeNumber = 0;
                         int pluQuantity = 0 ;
                         int pluPrice = 0;
+                        int countNullabe = 0;
                         double quantityConverted = 0.0;
                         String changeNumber ="";
                         String  canjePoints = "";
@@ -112,6 +120,18 @@ public class Main {
                                     cashierId = getAttribute(atributos, "Tail_NumCajero");
                                     storeNumber = getAttribute(atributos, "StoreNumber");
                                     posNumber = getAttribute(atributos, "Tail_NumPOS");
+                                }
+
+                                if (nodo.getNodeName().equals("PLU")) {
+                                    NamedNodeMap attributes = nodo.getAttributes();
+                                    codigoPLUInfo = getAttribute(attributes,"CodigoPLU");
+                                    pesableInfo = getAttribute(attributes, "Pesable");
+                                    quantityInfo = getAttribute(attributes, "Cantidad");
+
+                                    if (pesableInfo.equals("1")){
+                                        String codigoPesable = codigoPLUInfo+"-"+quantityInfo;
+                                        pesables.add(codigoPesable);
+                                    }
                                 }
 
                                 //Obtengo el valor para validar si es canje de puntos
@@ -222,50 +242,58 @@ public class Main {
                                     //Valido primero si tiene la etiqueta INFOSB
                                 } else if (nodo.getNodeName().equals("InfoSPF")) {
 
-                                    NamedNodeMap atributos = nodo.getAttributes();
-                                    for (int j = 0; j < atributos.getLength(); j++) {
-                                        Node atributo = atributos.item(j);
+                                    NamedNodeMap rutAttributes = nodo.getAttributes();
+                                    codigoPLU = getAttribute(rutAttributes, "CodigoPLU");
+                                    productName = DatabaseConnection.getProduct(codigoPLU, rutaDirectorio);
+                                    quantity = getAttribute(rutAttributes, "Cantidad");
+                                    precio = getAttribute(rutAttributes, "Precio");
+                                    descuento = getAttribute(rutAttributes, "MontoDesc");
 
-                                        if (atributo.getNodeName().equals("CodigoPLU")) {
-                                            codigoPLU = atributo.getNodeValue();
-                                            productName = DatabaseConnection.getProduct(codigoPLU, rutaDirectorio);
-                                        }
-                                        if (atributo.getNodeName().equals("Precio")) {
-                                            precio = atributo.getNodeValue();
-                                        }
-                                        if (atributo.getNodeName().equals("Cantidad")) {
-                                            quantity = atributo.getNodeValue();
-                                        }
-                                        if (atributo.getNodeName().equals("MontoDesc")) {
-                                            descuento = atributo.getNodeValue();
-                                        }
-
-                                    }
 
                                     totalDiscount = totalDiscount + Integer.parseInt(descuento);
                                     finalPrice = finalPrice + Integer.parseInt(precio);
 
+                                    String cadenaPesable = codigoPLU+"-"+quantity;
+                                    String search = pesables.stream().filter(x-> x.equalsIgnoreCase(cadenaPesable)).findFirst().orElse("");
+                                    if(!search.isEmpty()){
+                                        double precioConverted = 0;
+                                        int intPart = 0 ;
+                                        quantityConverted = calculatePounds(Integer.parseInt(quantity));
+                                        precioConverted = calculateRealPrice(quantityConverted,Integer.parseInt(precio));
+                                        intPart = (int) precioConverted;
+                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(quantityConverted).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
 
-                                    if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
-                                        if (descuento.isEmpty() || descuento.equals("0")) {
-                                            descuento = "0";
-                                        } else {
-                                            countDiscount++;
-                                        }
+                                    }else {
 
-
-                                        if (!codigoPLU.equals(lastCodigoPLU)) {
-
-                                            if (isDuplicate(codigoPLU, duplicates)) {
-                                                countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
-                                                totalPrice = Integer.parseInt(precio);
-                                                content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                        if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
+                                            if (descuento.isEmpty() || descuento.equals("0")) {
+                                                descuento = "0";
                                             } else {
-                                                content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(Integer.parseInt(precio) * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                countDiscount++;
                                             }
-                                        }
-                                        lastCodigoPLU = codigoPLU;
 
+
+                                            if (!codigoPLU.equals(lastCodigoPLU)) {
+
+                                                String finalCodigoPLU = codigoPLU;
+                                                String validDuplicatePLU = pluSaved.stream().filter(x-> x.equalsIgnoreCase(finalCodigoPLU)).findFirst().orElse("");
+
+                                                if(validDuplicatePLU.isEmpty()){
+                                                    if (isDuplicate(codigoPLU, duplicates)) {
+                                                        countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                        totalPrice = Integer.parseInt(precio);
+                                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(countDuplicates * Integer.parseInt(descuento)).append("\n");
+                                                        pluSaved.add(codigoPLU);
+                                                    } else {
+                                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(Integer.parseInt(precio) * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                    }
+                                                }
+                                            }
+                                            lastCodigoPLU = codigoPLU;
+
+
+
+                                        }
                                     }
                                     //Valido si existe valores en INFOSB con esto aseguro que entrara solo en los PLU
                                 } else if(!existsInfosb(nodos)){
@@ -273,6 +301,8 @@ public class Main {
                                     if (nodo.getNodeName().equals("PLU")) {
                                         pluCodes = resolveString(nodos, "PLU");
                                         duplicates = findDuplicateInStream(pluCodes);
+                                        nullabledCodesPlu = getNullabledCodes(nodos, "PLU");
+
 
                                         countDiscount = 0;
 
@@ -282,6 +312,8 @@ public class Main {
                                         quantity = getAttribute(rutAttributes, "Cantidad");
                                         precio = getAttribute(rutAttributes, "Precio");
                                         pesable = getAttribute(rutAttributes, "Pesable");
+                                        nullabled = getAttribute(rutAttributes, "AnularItem");
+
 
                                         if (pesable.equals("1")){
                                             double precioConverted = 0;
@@ -302,26 +334,37 @@ public class Main {
 
                                                 if (!codigoPLU.equals(lastCodigoPLU)) {
 
-                                                    if (isDuplicate(codigoPLU, duplicates)) {
-                                                        countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
-                                                        totalPrice = Integer.parseInt(precio);
-                                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
-                                                        precio = "";
-                                                        quantity = "";
-                                                    } else {
-                                                        totalPrice = Integer.parseInt(precio);
-                                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
-                                                        precio = "";
-                                                        quantity = "";
+                                                    String finalCodigoPLU = codigoPLU;
+                                                    String validDuplicatePLU = pluSaved.stream().filter(x-> x.equalsIgnoreCase(finalCodigoPLU)).findFirst().orElse("");
+
+                                                    //Validamos si existen coincidencias de la anulación
+                                                    long countExistence = nullabledCodesPlu.stream()
+                                                            .filter(codigo -> codigo.equals(finalCodigoPLU))
+                                                            .count();
+
+                                                    if(validDuplicatePLU.isEmpty()) {
+                                                        if (isDuplicate(codigoPLU, duplicates)) {
+                                                            countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                            if(countExistence > 0){
+                                                                countDuplicates = countDuplicates - Math.toIntExact((countExistence * 2));
+                                                            }
+                                                            totalPrice = Integer.parseInt(precio);
+                                                            content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                            precio = "";
+                                                            pluSaved.add(codigoPLU);
+                                                        } else {
+                                                            totalPrice = Integer.parseInt(precio);
+                                                            content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                            precio = "";
+                                                        }
                                                     }
+
                                                 }
                                                 lastCodigoPLU = codigoPLU;
 
                                             }
 
                                         }
-
-                                        //aqui va el cambio
                                     }
                                 }
 
@@ -367,7 +410,7 @@ public class Main {
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                         content.append(getStaticLine(nodos)).append(" TEXT_LINE          TOTAL NUM.ITEMS VENDIDOS =    ").append(totalQuantity).append("\n");
 
-                        if(canjePoints.isEmpty()) {
+                        if(countDiscount > 0) {
                             content.append(getStaticLine(nodos)).append(" TEXT_LINE").append("\n");
                             content.append(getStaticLine(nodos)).append(" TEXT_LINE       USTED AHORRO HOY!").append("\n");
                             content.append(getStaticLine(nodos)).append(" TEXT_LINE       -------------------").append("\n");
@@ -406,11 +449,8 @@ public class Main {
         for (int i = 0; i < nodos.getLength(); i++) {
             Node nodo = nodos.item(i);
             if (nodo.getNodeType() == Node.ELEMENT_NODE) {
-                if (nodo.getNodeType() == Node.ELEMENT_NODE) {
-                    //Obtengo el Ticket,Fecha y Hora
-                    if (nodo.getNodeName().equals("InfoSPF")) {
-                        infoSB = true;
-                    }
+                if (nodo.getNodeName().equals("InfoSPF")) {
+                    infoSB = true;
                 }
             }
         }
@@ -631,6 +671,26 @@ public class Main {
         }
         return duplicate;
 
+    }
+
+    private static List<String> getNullabledCodes(NodeList nodos, String cadena) {
+
+        List<String> nullCodes = new ArrayList<>();
+        String code,pluCode = "";
+        for (int i = 0; i < nodos.getLength(); i++) {
+            Node nodo = nodos.item(i);
+            if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+                if (nodo.getNodeName().equals(cadena)) {
+                    NamedNodeMap atributos = nodo.getAttributes();
+                    pluCode = getAttribute(atributos, "CodigoPLU");
+                    code = getAttribute(atributos, "AnularItem");
+                    if(code.equals("1")){
+                        nullCodes.add(pluCode);
+                    }
+                }
+            }
+        }
+        return nullCodes;
     }
 
     private static List<String> resolveString(NodeList nodos, String cadena) {
