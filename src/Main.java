@@ -42,6 +42,7 @@ public class Main {
 
             File directory = new File(rutaDirectorio);
             File[] archivos = directory.listFiles();
+            StringBuilder contentTotal = new StringBuilder();
 
             if (archivos != null) {
                 for (File archivo : archivos) {
@@ -89,6 +90,7 @@ public class Main {
                         String quantityInfo ="";
                         String codigoPLUInfo = "";
                         String nullabled = "";
+                        String realDiscount = "";
                         List<String> pluCodes = new ArrayList<>();
                         List<String> nullabledCodesPlu = new ArrayList<>();
                         List<String> duplicates = new ArrayList<>();
@@ -103,6 +105,8 @@ public class Main {
                         int pluQuantity = 0 ;
                         int pluPrice = 0;
                         int countNullabe = 0;
+                        int totalPrices = 0;
+                        int countTotalDiscount = 0;
                         double quantityConverted = 0.0;
                         String changeNumber ="";
                         String  canjePoints = "";
@@ -121,6 +125,15 @@ public class Main {
                                     storeNumber = getAttribute(atributos, "StoreNumber");
                                     posNumber = getAttribute(atributos, "Tail_NumPOS");
                                 }
+
+                                if (nodo.getNodeName().equals("Discount")) {
+                                    countTotalDiscount++;
+                                    NamedNodeMap atributos = nodo.getAttributes();
+                                    if(countTotalDiscount == 2){
+                                        realDiscount = getAttribute(atributos, "MontoDescuento");
+                                    }
+                                }
+
 
                                 if (nodo.getNodeName().equals("PLU")) {
                                     NamedNodeMap attributes = nodo.getAttributes();
@@ -225,8 +238,11 @@ public class Main {
                                                     countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
                                                     totalPrice = Integer.parseInt(precio);
                                                     content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                    totalPrices  = totalPrices + (totalPrice * countDuplicates);
                                                 } else {
                                                     content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(precio).append(",").append("1,1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                    totalPrices  = totalPrices + Integer.parseInt(precio);
+
                                                 }
                                             }
                                             lastCodigoPLU = codigoPLU;
@@ -263,6 +279,7 @@ public class Main {
                                         intPart = (int) precioConverted;
                                         content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(quantityConverted).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
 
+                                        totalPrices  = totalPrices + intPart;
                                     }else {
 
                                         if (!codigoPLU.isEmpty() && !precio.isEmpty()) {
@@ -284,8 +301,10 @@ public class Main {
                                                         totalPrice = Integer.parseInt(precio);
                                                         content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(countDuplicates * Integer.parseInt(descuento)).append("\n");
                                                         pluSaved.add(codigoPLU);
+                                                        totalPrices  = totalPrices + (totalPrice * countDuplicates);
                                                     } else {
                                                         content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(Integer.parseInt(precio) * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                        totalPrices  = totalPrices + (Integer.parseInt(precio) * Integer.parseInt(quantity));
                                                     }
                                                 }
                                             }
@@ -322,6 +341,7 @@ public class Main {
                                             precioConverted = calculateRealPrice(quantityConverted,Integer.parseInt(precio));
                                             intPart = (int) precioConverted;
                                             content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(quantityConverted).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                            totalPrices  = totalPrices + intPart;
                                         }else {
 
                                             if (!codigoPLU.isEmpty() && !precio.isEmpty() && !quantity.isEmpty()) {
@@ -352,10 +372,12 @@ public class Main {
                                                             content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
                                                             precio = "";
                                                             pluSaved.add(codigoPLU);
+                                                            totalPrices  = totalPrices + (totalPrice * countDuplicates);
                                                         } else {
                                                             totalPrice = Integer.parseInt(precio);
                                                             content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
                                                             precio = "";
+                                                            totalPrices  = totalPrices + (totalPrice * Integer.parseInt(quantity));
                                                         }
                                                     }
 
@@ -436,9 +458,27 @@ public class Main {
 
                         writeFile(rutaDirectorio+separator, content.toString(), ticketNumber);
 
+                        //Generamos el archivo de validación de totales
+
+                        contentTotal.append("****************************").append("\n");
+                        contentTotal.append("Numero de Ticket: ").append(ticketNumber).append("\n");
+                        contentTotal.append("****************************").append("\n");
+                        contentTotal.append("Total Pagado etiqueta: ").append(totalPay).append("\n");
+                        contentTotal.append("Total Suma: ").append(totalPrices-totalDiscount).append("\n");
+                        contentTotal.append("****************************").append("\n");
+                        if(realDiscount.isEmpty()) {
+                            realDiscount = "0";
+                        }
+                        contentTotal.append("Total Descuento Etiqueta: ").append(realDiscount).append("\n");
+                        contentTotal.append("Total Suma Descuento: ").append(totalDiscount).append("\n");
+                        contentTotal.append("****************************").append("\n");
+                        contentTotal.append("****************************").append("\n");
+                        contentTotal.append("****************************").append("\n");
+
                     }
                 }
             }
+            writeFile(rutaDirectorio+separator, contentTotal.toString(), "Validación_Totales");
         } catch (Exception e) {
             System.out.println(e.toString());
         }
