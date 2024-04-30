@@ -235,7 +235,7 @@ public class Main {
                                             if (!codigoPLU.equals(lastCodigoPLU)) {
 
                                                 if (isDuplicate(codigoPLU, duplicates)) {
-                                                    countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                    countDuplicates = getTotalQuantityPlu(nodos,"PLU", codigoPLU);
                                                     totalPrice = Integer.parseInt(precio);
                                                     content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
                                                     totalPrices  = totalPrices + (totalPrice * countDuplicates);
@@ -277,7 +277,7 @@ public class Main {
                                         quantityConverted = calculatePounds(Integer.parseInt(quantity));
                                         precioConverted = calculateRealPrice(quantityConverted,Integer.parseInt(precio));
                                         intPart = (int) precioConverted;
-                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(quantityConverted).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                        content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(validThousandth(quantityConverted)).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
 
                                         totalPrices  = totalPrices + intPart;
                                     }else {
@@ -297,7 +297,7 @@ public class Main {
 
                                                 if(validDuplicatePLU.isEmpty()){
                                                     if (isDuplicate(codigoPLU, duplicates)) {
-                                                        countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                        countDuplicates = getTotalQuantityPlu(nodos,"InfoSPF",codigoPLU);
                                                         totalPrice = Integer.parseInt(precio);
                                                         content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(countDuplicates * Integer.parseInt(descuento)).append("\n");
                                                         pluSaved.add(codigoPLU);
@@ -340,7 +340,7 @@ public class Main {
                                             quantityConverted = calculatePounds(Integer.parseInt(quantity));
                                             precioConverted = calculateRealPrice(quantityConverted,Integer.parseInt(precio));
                                             intPart = (int) precioConverted;
-                                            content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(quantityConverted).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                            content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(intPart).append(",").append(validThousandth(quantityConverted)).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
                                             totalPrices  = totalPrices + intPart;
                                         }else {
 
@@ -364,7 +364,8 @@ public class Main {
 
                                                     if(validDuplicatePLU.isEmpty()) {
                                                         if (isDuplicate(codigoPLU, duplicates)) {
-                                                            countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                            //countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                            countDuplicates = getTotalQuantityPlu(nodos,"PLU", codigoPLU);
                                                             if(countExistence > 0){
                                                                 countDuplicates = countDuplicates - Math.toIntExact((countExistence * 2));
                                                             }
@@ -482,6 +483,21 @@ public class Main {
         } catch (Exception e) {
             System.out.println(e.toString());
         }
+    }
+
+    private static String validThousandth (double quantity){
+        String realQuantity = Double.toString(quantity);
+
+        String[] parts = realQuantity.split("\\.");
+
+        int countCharts = parts[1].length();
+
+        if(countCharts == 2){
+            return realQuantity + "0";
+        }else {
+            return realQuantity;
+        }
+
     }
 
     private static boolean existsInfosb(NodeList nodos){
@@ -711,6 +727,26 @@ public class Main {
         }
         return duplicate;
 
+    }
+
+    private static int getTotalQuantityPlu(NodeList nodos, String cadena, String cod) {
+
+        String pluCode, cantidad = "";
+        int quantity = 0;
+        for (int i = 0; i < nodos.getLength(); i++) {
+            Node nodo = nodos.item(i);
+            if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+                if (nodo.getNodeName().equals(cadena)) {
+                    NamedNodeMap atributos = nodo.getAttributes();
+                    pluCode = getAttribute(atributos, "CodigoPLU");
+                    cantidad = getAttribute(atributos, "Cantidad");
+                    if(pluCode.equals(cod) && !cantidad.isEmpty()){
+                        quantity = quantity + Integer.parseInt(cantidad);
+                    }
+                }
+            }
+        }
+        return quantity;
     }
 
     private static List<String> getNullabledCodes(NodeList nodos, String cadena) {
