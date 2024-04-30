@@ -107,6 +107,7 @@ public class Main {
                         int countNullabe = 0;
                         int totalPrices = 0;
                         int countTotalDiscount = 0;
+                        int totalManualPay = 0;
                         double quantityConverted = 0.0;
                         String changeNumber ="";
                         String  canjePoints = "";
@@ -357,7 +358,7 @@ public class Main {
                                                     String finalCodigoPLU = codigoPLU;
                                                     String validDuplicatePLU = pluSaved.stream().filter(x-> x.equalsIgnoreCase(finalCodigoPLU)).findFirst().orElse("");
 
-                                                    //Validamos si existen coincidencias de la anulación
+                                                    //Validamos si existen coincidencias de la anulación por el PLU
                                                     long countExistence = nullabledCodesPlu.stream()
                                                             .filter(codigo -> codigo.equals(finalCodigoPLU))
                                                             .count();
@@ -365,15 +366,31 @@ public class Main {
                                                     if(validDuplicatePLU.isEmpty()) {
                                                         if (isDuplicate(codigoPLU, duplicates)) {
                                                             //countDuplicates = getCountDuplicates(codigoPLU, pluCodes);
+                                                            //Me da el numero total de coincidencias por cada PLU
                                                             countDuplicates = getTotalQuantityPlu(nodos,"PLU", codigoPLU);
                                                             if(countExistence > 0){
                                                                 countDuplicates = countDuplicates - Math.toIntExact((countExistence * 2));
                                                             }
-                                                            totalPrice = Integer.parseInt(precio);
-                                                            content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
-                                                            precio = "";
-                                                            pluSaved.add(codigoPLU);
-                                                            totalPrices  = totalPrices + (totalPrice * countDuplicates);
+
+                                                            //logica para los articulos que tienen
+
+
+                                                            if(existManualPrice(nodos,"PLU", codigoPLU)){
+                                                                totalManualPay  = getTotalNullAndManualPrice(nodos,"PLU", codigoPLU);
+                                                                int price = getManualPrice(nodos,"PLU", codigoPLU);
+                                                                content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(price).append(",").append(totalManualPay).append(",").append(Math.abs(countDuplicates)).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                                precio = "";
+                                                                pluSaved.add(codigoPLU);
+                                                                totalPrices  = totalPrices + totalManualPay;
+
+                                                            }else if(countDuplicates > 0){
+                                                                //Valido cuando hace la suma y resta en getTotalQuantityPlu para las anulaciones
+                                                                totalPrice = Integer.parseInt(precio);
+                                                                content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * countDuplicates).append(",").append(countDuplicates).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
+                                                                precio = "";
+                                                                pluSaved.add(codigoPLU);
+                                                                totalPrices  = totalPrices + (totalPrice * countDuplicates);
+                                                            }
                                                         } else {
                                                             totalPrice = Integer.parseInt(precio);
                                                             content.append(getStaticLine(nodos)).append(" ITEM            ").append(codigoPLU.substring(1)).append(" ").append(productName).append(",").append(precio).append(",").append(totalPrice * Integer.parseInt(quantity)).append(",").append(quantity).append(",1,0,0,0,0,0,0,0,").append(descuento).append("\n");
@@ -483,6 +500,64 @@ public class Main {
         } catch (Exception e) {
             System.out.println(e.toString());
         }
+    }
+
+    private static boolean existManualPrice(NodeList nodos, String cadena, String cod){
+        String pluCode, manualPrice = "";
+        String precio = "";
+        boolean exist = false;
+        for (int i = 0; i < nodos.getLength(); i++) {
+            Node nodo = nodos.item(i);
+            if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+                if (nodo.getNodeName().equals(cadena)) {
+                    NamedNodeMap atributos = nodo.getAttributes();
+                    pluCode = getAttribute(atributos, "CodigoPLU");
+                    manualPrice = getAttribute(atributos, "ManualPrice");
+                    if(pluCode.equals(cod) && manualPrice.equals("1")){
+                        exist = true;
+                    }
+                }
+            }
+        }
+        return exist;
+    }
+
+    private static int getManualPrice(NodeList nodos, String cadena, String cod){
+        String pluCode, manualPrice = "";
+        String precio = "";
+        for (int i = 0; i < nodos.getLength(); i++) {
+            Node nodo = nodos.item(i);
+            if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+                if (nodo.getNodeName().equals(cadena)) {
+                    NamedNodeMap atributos = nodo.getAttributes();
+                    pluCode = getAttribute(atributos, "CodigoPLU");
+                    manualPrice = getAttribute(atributos, "ManualPrice");
+                    if(pluCode.equals(cod) && manualPrice.equals("1")){
+                        precio = getAttribute(atributos, "Precio");
+                    }
+                }
+            }
+        }
+        return Integer.parseInt(precio);
+    }
+
+    private static int getTotalNullAndManualPrice(NodeList nodos, String cadena, String cod){
+        String pluCode, precio = "";
+        int quantity = 0;
+        for (int i = 0; i < nodos.getLength(); i++) {
+            Node nodo = nodos.item(i);
+            if (nodo.getNodeType() == Node.ELEMENT_NODE) {
+                if (nodo.getNodeName().equals(cadena)) {
+                    NamedNodeMap atributos = nodo.getAttributes();
+                    pluCode = getAttribute(atributos, "CodigoPLU");
+                    precio = getAttribute(atributos, "Monto_Recibido");
+                    if(pluCode.equals(cod) && !precio.isEmpty()){
+                        quantity = quantity + Integer.parseInt(precio);
+                    }
+                }
+            }
+        }
+        return quantity;
     }
 
     private static String validThousandth (double quantity){
